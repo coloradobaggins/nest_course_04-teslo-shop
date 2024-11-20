@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ParseMongoIdPipe } from 'src/common/parse-mongo-id/parse-mongo-id.pipe';
 
 @Controller('products')
 export class ProductsController {
@@ -28,7 +29,8 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.productsService.remove(+id);
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    console.log(`id! ${id}`)
+    return this.productsService.remove(id);
   }
 }
