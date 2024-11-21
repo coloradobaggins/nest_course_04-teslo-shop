@@ -1,9 +1,12 @@
-import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
 import { Repository } from 'typeorm';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { off } from 'process';
+import { FindProductDto } from './dto/find-product.dto';
 
 @Injectable()
 export class ProductsService {
@@ -36,19 +39,59 @@ export class ProductsService {
 
   }
 
-  findAll() {
-    return `This action returns all products`;
+  async findAll(paginationDto: PaginationDto) {
+
+    const { limit = 10, offset= 0 } = paginationDto;
+
+    this.logger.log(`LIMIT: ${limit} - offset: ${offset}`);
+
+    return await this.productRepository.find({
+      take: limit,
+      skip: offset,
+      //Relations..
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  async findOne(findProductDto: FindProductDto) {
+    console.log(`On FindOne !!`);
+    const { id, slug } = findProductDto;
+
+    let product: Product;
+
+    console.log(`id?: ${id} - slug?: ${slug}`);
+
+    if(id){
+      console.log(`FIND BY ID!`)
+      product = await this.productRepository.findOneBy({id});
+    }
+    
+    if(slug)
+      console.log(`TODO: FIND BY SLUG`);
+
+    return product;
   }
 
   update(id: number, updateProductDto: UpdateProductDto) {
     return `This action updates a #${id} product`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  async remove(idProd: string) {
+    try{
+      const deleteProd = await this.productRepository.delete({id: idProd});
+      this.logger.log(`${idProd} -> deleted`);
+      
+      if(deleteProd.affected === 0)
+        throw new BadRequestException(`${idProd} no fue encontrado`);
+
+      return `${idProd} deleted`;
+
+    }catch(err){
+      this.logger.error(err);
+      throw new HttpException({
+        statusCode: err?.status || 500, 
+        status: `Error`,
+        message: err?.message || `Error eliminando ${idProd}`
+      }, err?.status || 500)
+    }
   }
 }
