@@ -5,7 +5,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
 import { Repository } from 'typeorm';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { off, title } from 'process';
 import { validate as isUUID } from 'uuid';
 
 @Injectable()

@@ -39,6 +39,12 @@ export class Product {
   @Column('text')
   gender: string;
 
+  @Column('text', {
+    array: true,
+    default: []
+  })
+  tags: string[];
+
   @BeforeInsert()
   checkSlugBeforeInsert() {
     console.log(`on Before Insert`);
