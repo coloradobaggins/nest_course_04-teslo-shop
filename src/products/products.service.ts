@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -79,7 +79,25 @@ export class ProductsService {
   }
 
   async update(id: string, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;    
+    console.log(updateProductDto);
+
+    //Preload, busca por id y pone las propiedades que enviamos para actualizar. No lo actualiza, lo busca y prepara.
+    const product = await this.productRepository.preload({
+      id: id,
+      ...updateProductDto,
+    });
+
+    if(!product)
+      throw new NotFoundException(`Product id ${id} not found`);
+
+    try{
+      
+      await this.productRepository.save(product)
+      return product;
+    }catch(err){
+      this.logger.error(err);
+      throw new BadRequestException(`Error. ${err?.message}`)
+    }
   }
 
   async remove(idProd: string) {
