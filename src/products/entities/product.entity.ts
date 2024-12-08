@@ -46,13 +46,13 @@ export class Product {
   })
   tags: string[];
 
-  //Imagenes
+  //Imagenes relacion
   @OneToMany(
     () => ProductImage, //el callback regresa un product image
     (productImage) => productImage.product,    //Relacion
-    { cascade: true }
+    { cascade: true, eager: true }  //eager, get images table.
   )
-  images?: ProductImage;
+  images?: ProductImage[];
 
   @BeforeInsert()
   checkSlugBeforeInsert() {
