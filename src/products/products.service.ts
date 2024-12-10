@@ -3,10 +3,10 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
-import { Repository } from 'typeorm';
+import { ProductImage } from './entities/product-image.entity';
+import { DataSource, Repository } from 'typeorm';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { validate as isUUID } from 'uuid';
-import { ProductImage } from './entities/product-image.entity';
 
 @Injectable()
 export class ProductsService {
@@ -20,6 +20,8 @@ export class ProductsService {
 
     @InjectRepository(ProductImage)
     private readonly productImageRepository: Repository<ProductImage>,
+
+    private readonly dataSource: DataSource, // (obtiene datos de conexion. Misma config que el repositorio)
   ) {}
 
   async create(createProductDto: CreateProductDto) {
@@ -109,22 +111,46 @@ export class ProductsService {
   async update(id: string, updateProductDto: UpdateProductDto) {
     console.log(updateProductDto);
 
+    const { images, ...prodDetails } = updateProductDto
+
     //Preload, busca por id y pone las propiedades que enviamos para actualizar. No lo actualiza, lo busca y prepara.
     const product = await this.productRepository.preload({
       id: id,
-      ...updateProductDto,
-      images: [],
+      ...prodDetails,
     });
 
     if(!product)
       throw new NotFoundException(`Product id ${id} not found`);
 
+    //Transacacciones
+    //Query runner, definimos el procedimientos de commits..
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try{
+      //Si vienen imgs borramos las actuales primero.
+      if(images){
+
+        await queryRunner.manager.delete(ProductImage, { product: { id: id } }) //product es la relacion de ProductImage entity con Product, y matchea el id con el id de producto que viene.
+        
+        product.images = images.map( img => this.productImageRepository.create({url: img}) )
+
+      }
+
+      await queryRunner.manager.save(product); //Intenta grabarlo, aun no impacta en db.
       
-      await this.productRepository.save(product)
-      return product;
+      await queryRunner.commitTransaction();
+      await queryRunner.release();
+
+      return this.findOne(id)
+
     }catch(err){
       this.logger.error(err);
+
+      await queryRunner.rollbackTransaction();
+      await queryRunner.release();
+
       throw new BadRequestException(`Error. ${err?.message}`)
     }
   }
