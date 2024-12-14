@@ -174,4 +174,23 @@ export class ProductsService {
       }, err?.status || 500)
     }
   }
+
+  async removeAllProducts() {
+
+    this.logger.log(`remove all products...`);
+
+    const query = this.productRepository.createQueryBuilder('product');
+
+    try{
+
+      return await query.delete().where({}).execute();
+
+    }catch(err){
+      throw new HttpException({
+        statusCode: err?.status || 500,
+        status: `Error`,
+        message: err?.message || `Error eliminando todos los productos`,
+      }, err?.status || 500)
+    }
+  }
 }
