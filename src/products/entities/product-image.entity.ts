@@ -13,7 +13,8 @@ export class ProductImage{
   //Relacion a product (entity)
   @ManyToOne(
     () => Product, //Callback que regresa a clase que crea la entidad  
-    (product) => product.images // Product se va a relacionar con ...
+    (product) => product.images, // Product se va a relacionar con ...
+    { onDelete: "CASCADE" } //Defino borrar en cascada al borrar un producto.. borrar imgs en cascada
   )
   product: Product;
 }
